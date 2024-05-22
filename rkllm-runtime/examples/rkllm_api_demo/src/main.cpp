@@ -20,6 +20,7 @@
 #include <iostream>
 #include <csignal>
 #include <vector>
+#include <chrono>
 
 #define PROMPT_TEXT_PREFIX "<|im_start|>system You are a helpful assistant. <|im_end|> <|im_start|>user"
 #define PROMPT_TEXT_POSTFIX "<|im_end|><|im_start|>assistant"
@@ -41,11 +42,15 @@ void exit_handler(int signal)
     }
 }
 
+int len = 0;
 void callback(RKLLMResult *result, void *userdata, LLMCallState state)
 {
+
     if (state == LLM_RUN_FINISH)
     {
         printf("\n");
+        printf("%d", result->num);
+        len = result->num;
     }
     else if (state == LLM_RUN_ERROR)
     {
@@ -71,14 +76,22 @@ int main(int argc, char **argv)
     //设置参数及初始化
     RKLLMParam param = rkllm_createDefaultParam();
     param.model_path = rkllm_model.c_str();
-    param.num_npu_core = 2;
-    param.top_k = 1;
+    param.num_npu_core = 3;
+    param.top_k = 40;
+    param.top_p = 0.9;
+    param.temperature = 0.8;
+    param.repeat_penalty = 1.1;
+    param.frequency_penalty = 0;
     param.max_new_tokens = 256;
     param.max_context_len = 512;
     param.logprobs = false;
     param.top_logprobs = 5;
     param.use_gpu = false;
+    auto start = std::chrono::high_resolution_clock::now();
     rkllm_init(&llmHandle, param, callback);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    printf("rkllm init time: %lld us\n", duration.count());
     printf("rkllm init success\n");
     
     vector<string> pre_input;
@@ -115,11 +128,17 @@ int main(int argc, char **argv)
                 cout << input_str << endl;
             }
         }
-        // string text = PROMPT_TEXT_PREFIX + input_str + PROMPT_TEXT_POSTFIX;
-        string text = input_str;
+        string text = PROMPT_TEXT_PREFIX + input_str + PROMPT_TEXT_POSTFIX;
+        // string text = input_str;
 
         printf("robot: ");
+        auto start = std::chrono::high_resolution_clock::now();
         rkllm_run(llmHandle, text.c_str(), NULL);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        printf("rkllm run time: %lld us\n", duration.count());
+        std::cout << "len: " << len  << std::endl;
+        std::cout << "每秒处理的tokens数量: " << len / (duration.count() / 1000000.0) << std::endl;
     }
 
     rkllm_destroy(llmHandle);

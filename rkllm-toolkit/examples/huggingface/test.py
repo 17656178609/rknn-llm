@@ -5,7 +5,7 @@ https://huggingface.co/Qwen/Qwen-1_8B-Chat
 Download the Qwen model from the above website.
 '''
 
-modelpath = '/path/to/your/model'
+modelpath = '/home/chenhaiwei/code/rknn-llm/rkllm-toolkit/examples/huggingface/model/gemma-2b-it'
 llm = RKLLM()
 
 # Load model
@@ -21,7 +21,7 @@ if ret != 0:
     exit(ret)
 
 # Export rknn model
-ret = llm.export_rkllm("./qwen.rkllm")
+ret = llm.export_rkllm("./gemma-2b-it.rkllm")
 if ret != 0:
     print('Export model failed!')
     exit(ret)
